@@ -1,0 +1,49 @@
+<?php
+if(isset($_POST['submit'])) {
+    // Retrieve the IP address from the form
+    $ip_address = $_POST['ip_address'];
+
+    // Fetch IP information from the RIPE database API
+    $url = "https://rest.db.ripe.net/search.json?query-string=$ip_address&type-filter=inetnum";
+    $response = @file_get_contents($url);
+
+    // Check if the response is valid
+    if ($response === FALSE) {
+        echo "<div class='result'>";
+        echo "<p class='error'>Error retrieving data. Please try again later.</p>";
+        echo "</div>";
+    } else {
+        // Decode the JSON response
+        $data = json_decode($response, true);
+
+        // Check if data is available
+        if(isset($data["objects"]) && isset($data["objects"]["object"])) {
+            $ip_info = $data["objects"]["object"][0];
+            $inetnum = $ip_info["primary-key"]["attribute"][0]["value"];
+            $netname = $ip_info["attributes"]["attribute"][1]["value"];
+            $country_code = "";
+            
+            // Find and extract the country code
+            foreach ($ip_info["attributes"]["attribute"] as $attr) {
+                if ($attr["name"] == "country") {
+                    $country_code = $attr["value"];
+                    break;
+                }
+            }
+
+            // Display the retrieved information
+            echo "<div class='result'>";
+            echo "<p><strong>IP:</strong> $ip_address</p>";
+            echo "<p><strong>Inetnum:</strong> $inetnum</p>";
+            echo "<p><strong>Netname:</strong> $netname</p>";
+            echo "<p><strong>Country:</strong> $country_code</p>";
+            echo "</div>";
+        } else {
+            // Display an error message if data is not available
+            echo "<div class='result'>";
+            echo "<p class='error'>No information found for the provided IP address.</p>";
+            echo "</div>";
+        }
+    }
+}
+?>
